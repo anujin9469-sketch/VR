@@ -15,13 +15,39 @@
   </script>
 
   <style>
-    html, body { margin: 0; padding: 0; overflow: hidden; background: #0b1220; font-family: sans-serif; }
-    #hud { position: fixed; top: 12px; left: 12px; z-index: 20; color: white; background: rgba(0,0,0,.8); border-radius: 12px; padding: 15px; width: 320px; border: 1px solid rgba(255,255,255,0.1); }
-    #status-box { margin-top: 10px; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.05); }
-    .ok { color: #4ade80; font-weight: bold; }
-    .bad { color: #f87171; font-weight: bold; }
-    .sel { color: #fbbf24; }
-    button { margin-top: 10px; width: 100%; padding: 10px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 5px; font-weight: bold; }
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      background: #e8eef7;
+      font-family: sans-serif;
+    }
+    #hud {
+      position: fixed; top: 12px; left: 12px; z-index: 20;
+      color: #1a2540;
+      background: rgba(255,255,255,0.92);
+      border-radius: 12px;
+      padding: 15px;
+      width: 320px;
+      border: 1px solid rgba(60,100,200,0.18);
+      box-shadow: 0 4px 24px rgba(60,100,200,0.10);
+    }
+    #hud b { color: #1a2540; }
+    #hud small { color: #3a5080; }
+    #status-box {
+      margin-top: 10px; padding: 8px;
+      border-radius: 6px;
+      background: rgba(60,100,200,0.06);
+      border: 1px solid rgba(60,100,200,0.10);
+    }
+    .ok  { color: #16a34a; font-weight: bold; }
+    .bad { color: #dc2626; font-weight: bold; }
+    .sel { color: #d97706; }
+    button {
+      margin-top: 10px; width: 100%; padding: 10px;
+      cursor: pointer;
+      background: #2563eb; color: white;
+      border: none; border-radius: 5px; font-weight: bold;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+    }
     button:hover { background: #1d4ed8; }
   </style>
 </head>
@@ -29,15 +55,15 @@
 
   <div id="hud">
     <b>Network Cable Lab</b><br>
-    <small>?????????: ??????????????? <b>Crossover</b> ???????? ??????? ??.</small>
-    
+    <small>Даалгавар: Төхөөрөмжүүдийг <b>Crossover</b> кабелиар холбоно уу.</small>
+
     <div id="status-box">
-      ??????: <span id="selectedCable" class="sel">???????</span><br>
-      ???? 1: <span id="selectedPort">???????</span><br>
-      ?????: <span id="status">?????? ?????...</span>
+      Кабель: <span id="selectedCable" class="sel">байхгүй</span><br>
+      Порт 1: <span id="selectedPort">байхгүй</span><br>
+      Төлөв: <span id="status">Ачаалж байна...</span>
     </div>
-    
-    <button id="resetBtn">????? ?????</button>
+
+    <button id="resetBtn">Дахин эхлэх</button>
   </div>
 
   <script type="module">
@@ -45,9 +71,10 @@
     import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
     import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-    // --- ???? ???????? ---
+    // --- СЦЕН ТОХИРГОО ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0b1220);
+    scene.background = new THREE.Color(0xe8eef7);
+    scene.fog = new THREE.Fog(0xe8eef7, 30, 80);
 
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 5, 8);
@@ -55,90 +82,154 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
-    scene.add(light);
+    controls.enableDamping = true;
 
-    // --- ??????? ????? ????? ---
+    // --- ГЭРЭЛТҮҮЛЭГ ---
+    // Тэнгэрийн гэрэл (дэвсгэр)
+    const hemi = new THREE.HemisphereLight(0xddeeff, 0xaabbcc, 1.2);
+    scene.add(hemi);
+
+    // Нарны гэрэл
+    const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+    sun.position.set(5, 10, 7);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 50;
+    scene.add(sun);
+
+    // Дэмжих гэрэл (сүүдрийг зөөлрүүлнэ)
+    const fill = new THREE.DirectionalLight(0xc8d8f0, 1.0);
+    fill.position.set(-5, 3, -3);
+    scene.add(fill);
+
+    // Доорхи гэрэл
+    const bounce = new THREE.DirectionalLight(0xe0eaff, 0.5);
+    bounce.position.set(0, -3, 2);
+    scene.add(bounce);
+
+    // Тавцан
+    const floorGeo = new THREE.PlaneGeometry(40, 40);
+    const floorMat = new THREE.MeshLambertMaterial({ color: 0xd4dcec });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.01;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // --- ӨГӨГДӨЛ БОЛОН ТӨЛӨВ ---
     let selectedCableType = null;
     let firstPort = null;
     const interactables = [];
     const packetFlows = [];
     let blinkingInvalid = null;
 
-    const cableEl = document.getElementById("selectedCable");
-    const portEl = document.getElementById("selectedPort");
-    const statusEl = document.getElementById("status");
+    const cableEl   = document.getElementById("selectedCable");
+    const portEl    = document.getElementById("selectedPort");
+    const statusEl  = document.getElementById("status");
 
-    // --- ???? ?????? ????? ---
+    // --- ПОРТ ҮҮСГЭХ ---
     function createPort(name, deviceName, pos) {
-      const geo = new THREE.SphereGeometry(0.08, 16, 16);
-      const mat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0x330000 });
+      const geo = new THREE.SphereGeometry(0.09, 24, 24);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xff3333,
+        emissive: 0x660000,
+        roughness: 0.3,
+        metalness: 0.2
+      });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.copy(pos);
+      mesh.castShadow = true;
       mesh.userData = { kind: "port", deviceName, connected: false };
       scene.add(mesh);
       interactables.push(mesh);
       return mesh;
     }
 
-    // --- ?????? ??????? ---
+    // --- КАБЕЛЬ СОНГОГЧ ---
     function createCableUI(name, type, color, x) {
-      const geo = new THREE.TorusGeometry(0.15, 0.04, 16, 32);
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.3 });
+      const geo = new THREE.TorusGeometry(0.18, 0.05, 24, 48);
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.2,
+        metalness: 0.3
+      });
       const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(x, 0.5, 4); 
+      mesh.position.set(x, 0.6, 4);
       mesh.rotation.x = Math.PI / 2;
+      mesh.castShadow = true;
       mesh.userData = { kind: "cableSelector", type, name };
       scene.add(mesh);
       interactables.push(mesh);
-    }
-    createCableUI("Straight", "straight", 0x4ade80, -0.8);
-    createCableUI("Crossover", "crossover", 0xf97316, 0.8);
 
-    // --- ????????? ????? ---
+      // Шошго
+      const labelGeo = new THREE.PlaneGeometry(0.7, 0.25);
+      const canvas = document.createElement("canvas");
+      canvas.width = 256; canvas.height = 90;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.roundRect(4, 4, 248, 82, 12);
+      ctx.fill();
+      ctx.fillStyle = "#1a2540";
+      ctx.font = "bold 36px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(name, 128, 52);
+      const tex = new THREE.CanvasTexture(canvas);
+      const labelMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+      const label = new THREE.Mesh(labelGeo, labelMat);
+      label.position.set(x, 1.1, 4);
+      scene.add(label);
+    }
+    createCableUI("Straight",  "straight",  0x22c55e, -0.8);
+    createCableUI("Crossover", "crossover", 0xf97316,  0.8);
+
+    // --- СОНГОЛТЫН ЛОГИК ---
     function handleSelection(obj) {
       if (obj.userData.kind === "cableSelector") {
         selectedCableType = obj.userData.type;
         cableEl.textContent = obj.userData.name;
-        statusEl.innerHTML = "???? ??????? ??";
+        statusEl.innerHTML = "Порт сонгоно уу";
       } else if (obj.userData.kind === "port") {
         if (!selectedCableType) {
-          statusEl.innerHTML = "<span class='bad'>?????? ?????? ?????!</span>";
+          statusEl.innerHTML = "<span class='bad'>Эхлээд кабель сонго!</span>";
           return;
         }
         if (obj.userData.connected) return;
 
         if (!firstPort) {
           firstPort = obj;
-          obj.material.color.set(0xffff00); 
+          obj.material.color.set(0xffcc00);
+          obj.material.emissive.set(0x554400);
           portEl.textContent = obj.userData.deviceName;
         } else {
           if (firstPort === obj) return;
           checkConnection(firstPort, obj);
           firstPort = null;
-          portEl.textContent = "???????";
+          portEl.textContent = "байхгүй";
         }
       }
     }
 
-    // --- ??????? ?????? ---
+    // --- ХОЛБОЛТ ШАЛГАХ ---
     function checkConnection(p1, p2) {
       const isValid = (selectedCableType === "crossover");
 
       const start = p1.position.clone();
-      const end = p2.position.clone();
-      const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-      mid.y += 0.8; 
+      const end   = p2.position.clone();
+      const mid   = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+      mid.y += 1.2;
 
-      const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-      const points = curve.getPoints(50);
-      const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const mat = new THREE.LineBasicMaterial({ 
-        color: isValid ? 0x22c55e : 0xff0000, 
-        linewidth: 4 
+      const curve  = new THREE.QuadraticBezierCurve3(start, mid, end);
+      const points = curve.getPoints(80);
+      const geo    = new THREE.BufferGeometry().setFromPoints(points);
+      const mat    = new THREE.LineBasicMaterial({
+        color: isValid ? 0x16a34a : 0xdc2626,
+        linewidth: 3
       });
       const line = new THREE.Line(geo, mat);
       scene.add(line);
@@ -146,69 +237,91 @@
       if (isValid) {
         p1.userData.connected = true;
         p2.userData.connected = true;
-        p1.material.color.set(0x00ff00);
-        p2.material.color.set(0x00ff00);
-        statusEl.innerHTML = "<span class='ok'>???! (Crossover)</span>";
-        
-        const pGeo = new THREE.SphereGeometry(0.05, 8, 8);
-        const pMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        p1.material.color.set(0x22c55e);
+        p1.material.emissive.set(0x115500);
+        p2.material.color.set(0x22c55e);
+        p2.material.emissive.set(0x115500);
+        statusEl.innerHTML = "<span class='ok'>✓ Зөв! (Crossover)</span>";
+
+        // Өгөгдлийн бөмбөлөг
+        const pGeo  = new THREE.SphereGeometry(0.06, 12, 12);
+        const pMat  = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x005500, roughness: 0.2 });
         const pMesh = new THREE.Mesh(pGeo, pMat);
         scene.add(pMesh);
         packetFlows.push({ mesh: pMesh, curve, t: 0 });
       } else {
-        statusEl.innerHTML = "<span class='bad'>????? ??????!</span>";
+        statusEl.innerHTML = "<span class='bad'>✗ Буруу кабель!</span>";
         blinkingInvalid = { line, start: Date.now() };
         setTimeout(() => {
           scene.remove(line);
-          p1.material.color.set(0xff0000);
-          p2.material.color.set(0xff0000);
+          p1.material.color.set(0xff3333);
+          p1.material.emissive.set(0x660000);
+          p2.material.color.set(0xff3333);
+          p2.material.emissive.set(0x660000);
         }, 1500);
       }
     }
 
-    // --- ?????? ????? ????? ??????? ???? ---
+    // --- МОДЕЛЬ УНШИХ ---
     const loader = new GLTFLoader();
     loader.load('./abc.glb', (gltf) => {
       const model = gltf.scene;
+      model.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow    = true;
+          c.receiveShadow = true;
+          if (c.material) {
+            c.material.envMapIntensity = 1.0;
+          }
+        }
+      });
       scene.add(model);
-      statusEl.textContent = "?????";
+      statusEl.textContent = "Бэлэн";
 
-      // ?????? ?????? ??????????? ?????? ?? ???? ????
       model.traverse((child) => {
         if (child.isMesh) {
           const name = child.name.toLowerCase();
-          // ????? ???????? ?????? ?????????, ????, ?????? ????? ?? ??????
           if (name.includes("pc") || name.includes("switch") || name.includes("router") || name.includes("server")) {
-            
-            // ???????? ??????? ??????????? ????
             const worldPos = new THREE.Vector3();
             child.getWorldPosition(worldPos);
-
-            // ?????? ???????? ?????? ?????????? (????????? ????? ?????????? ?????????)
             const portPos = new THREE.Vector3(worldPos.x, worldPos.y + 0.3, worldPos.z + 0.5);
             createPort(child.name, child.name.toUpperCase(), portPos);
           }
         }
       });
+    }, undefined, () => {
+      // GLB байхгүй үед туршилтын объект
+      statusEl.textContent = "Бэлэн (demo)";
+      const boxGeo = new THREE.BoxGeometry(0.8, 0.5, 1.2);
+      const boxMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.5, metalness: 0.3 });
+      [-2, 2].forEach((x, i) => {
+        const box = new THREE.Mesh(boxGeo, boxMat.clone());
+        box.position.set(x, 0.25, 0);
+        box.castShadow = true;
+        box.receiveShadow = true;
+        scene.add(box);
+        createPort("port"+i, i === 0 ? "PC-A" : "PC-B", new THREE.Vector3(x, 0.7, 0.6));
+      });
     });
 
-    // --- ??????? ?????? ---
+    // --- RAYCASTER ---
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
     window.addEventListener("pointerdown", (e) => {
-      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
       mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
       const hits = raycaster.intersectObjects(interactables);
       if (hits.length > 0) handleSelection(hits[0].object);
     });
 
-    // --- ???????? ---
+    // --- АНИМЭЙШН ---
     function animate() {
       requestAnimationFrame(animate);
+      controls.update();
       packetFlows.forEach(f => {
-        f.t += 0.008;
+        f.t += 0.01;
         if (f.t > 1) f.t = 0;
         f.mesh.position.copy(f.curve.getPoint(f.t));
       });
